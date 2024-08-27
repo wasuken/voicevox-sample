@@ -1,11 +1,19 @@
-FROM alpine:latest
+FROM debian:stable-slim
 
-RUN apk --no-cache add bash curl apk-cron
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cron \
+    bash \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY batch_script.sh /usr/local/bin/batch_script.sh
 
 RUN chmod +x /usr/local/bin/batch_script.sh
 
-RUN echo "* * * * * /usr/local/bin/batch_script.sh >> /var/log/cron.log 2>&1" > /etc/crontabs/root
+RUN echo "* * * * * /usr/local/bin/batch_script.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/batch-cron \
+    && chmod 0644 /etc/cron.d/batch-cron \
+    && crontab /etc/cron.d/batch-cron
 
-CMD ["sh", "-c", "cron && tail -f /var/log/cron.log"]
+RUN touch /var/log/cron.log
+
+CMD cron && tail -f /var/log/cron.log
